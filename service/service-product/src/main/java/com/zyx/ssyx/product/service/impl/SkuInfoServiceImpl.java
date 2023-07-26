@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zyx.ssyx.common.constant.MqConst;
+import com.zyx.ssyx.common.service.RabbitService;
 import com.zyx.ssyx.model.product.SkuAttrValue;
 import com.zyx.ssyx.model.product.SkuImage;
 import com.zyx.ssyx.model.product.SkuInfo;
@@ -40,6 +42,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo> impl
 
     @Autowired
     private SkuInfoMapper skuInfoMapper;
+
+    @Autowired
+    private RabbitService rabbitService;
 
     /**
      * 获取sku分页列表
@@ -202,14 +207,34 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo> impl
         baseMapper.updateById(skuInfoUp);
     }
 
-    /**
-     * 商品上架
-     *
-     * @param skuId
-     * @param status
-     */
-    @Override
+//    /**
+//     * 商品上架
+//     *
+//     * @param skuId
+//     * @param status
+//     */
+//    @Override
+//    @Transactional(rollbackFor = {Exception.class})
+//    public void publish(Long skuId, Integer status) {
+//        // 更改发布状态
+//        if(status == 1) {
+//            SkuInfo skuInfoUp = new SkuInfo();
+//            skuInfoUp.setId(skuId);
+//            skuInfoUp.setPublishStatus(1);
+//            skuInfoMapper.updateById(skuInfoUp);
+//            //TODO 商品上架 后续会完善：发送mq消息更新es数据
+//        } else {
+//            SkuInfo skuInfoUp = new SkuInfo();
+//            skuInfoUp.setId(skuId);
+//            skuInfoUp.setPublishStatus(0);
+//            skuInfoMapper.updateById(skuInfoUp);
+//            //TODO 商品下架 后续会完善：发送mq消息更新es数据
+//        }
+//    }
+
+
     @Transactional(rollbackFor = {Exception.class})
+    @Override
     public void publish(Long skuId, Integer status) {
         // 更改发布状态
         if(status == 1) {
@@ -217,13 +242,17 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo> impl
             skuInfoUp.setId(skuId);
             skuInfoUp.setPublishStatus(1);
             skuInfoMapper.updateById(skuInfoUp);
-            //TODO 商品上架 后续会完善：发送mq消息更新es数据
+
+            //商品上架：发送mq消息同步es
+            rabbitService.sendMessage(MqConst.EXCHANGE_GOODS_DIRECT, MqConst.ROUTING_GOODS_UPPER, skuId);
         } else {
             SkuInfo skuInfoUp = new SkuInfo();
             skuInfoUp.setId(skuId);
             skuInfoUp.setPublishStatus(0);
             skuInfoMapper.updateById(skuInfoUp);
-            //TODO 商品下架 后续会完善：发送mq消息更新es数据
+
+            //商品下架：发送mq消息同步es
+            rabbitService.sendMessage(MqConst.EXCHANGE_GOODS_DIRECT, MqConst.ROUTING_GOODS_LOWER, skuId);
         }
     }
 

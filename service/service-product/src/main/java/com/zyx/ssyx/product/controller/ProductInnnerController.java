@@ -31,4 +31,5 @@ public class ProductInnnerController {
     public SkuInfo getSkuInfo(@PathVariable("skuId") Long skuId) {
         return skuInfoService.getById(skuId);
     }
+
 }

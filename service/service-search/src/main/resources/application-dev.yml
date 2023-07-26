@@ -1,5 +1,5 @@
 server:
-  port: 8208
+  port: 10103
 feign:
   sentinel:
     enabled: true
@@ -14,9 +14,10 @@ spring:
   elasticsearch:
     rest:
       uris: http://localhost:9200
+
   rabbitmq:
-    host: 192.168.197.128
-    port: 5672
+    host: wsl
+    port: 15672
     username: guest
     password: guest
     publisher-confirm-type: CORRELATED
@@ -26,6 +27,7 @@ spring:
         prefetch: 1
         concurrency: 3
         acknowledge-mode: manual
+
   redis:
     host: localhost
     port: 6379
